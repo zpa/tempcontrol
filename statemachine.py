@@ -1,10 +1,11 @@
 from enum import Enum
+from config import TEMP_DELTA_MINUS, TEMP_DELTA_PLUS
 
 # temperature regions for implementing hysteresis
 # <----T0----+----T1----+----T2---->
-TEMP_DELTA_MINUS = 0.5
-TEMP_DELTA_PLUS = 1.0
-
+#            |          |
+#            |          +--- target + TEMP_DELTA_PLUS
+#            +-------------- target - TEMP_DELTA_MINUS
 class Temp(Enum):
     T0 = 0
     T1 = 1

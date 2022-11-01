@@ -7,6 +7,7 @@ import paho.mqtt.publish as mqtt_publish
 import database as db
 import statemachine as sm
 import sms
+from config import ADMIN
 
 app = Flask(__name__)
 
@@ -128,8 +129,6 @@ def heat(temperature):
 
 @app.route('/message/')
 def message():
-    ADMIN = '+36203732951'
-
     sender = request.args.get('sender', str)
     message_body = request.args.get('message_body', str)
     

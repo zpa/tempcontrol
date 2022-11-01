@@ -1,6 +1,5 @@
 from datetime import datetime
-
-SMS_OUTBOX = "/Users/zsolt/src/tempcontrol/sms/outbox/"
+from config import SMS_OUTBOX
 
 # gammu file backend filename template:
 # OUT<priority><date>_<time>_<serial>_<recipient>_<note>.<ext>

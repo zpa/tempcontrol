@@ -11,13 +11,7 @@ import statemachine as sm
 import paho.mqtt.client as mqtt
 import logging
 import sqlite3
-
-SHELLY_HT_TOPIC = "shellies/shellyht.local/sensor/temperature"
-TEMPCONTROL_TOPIC = "tempcontrol/command"
-SHELLY_RELAY_TOPICS = ["shellies/shelly1-livingroom/relay/0/command",
-                       "shellies/shelly1-bathroom/relay/0/command",
-                       "shellies/shelly1-bedroom1/relay/0/command",
-                       "shellies/shelly1-bedroom2/relay/0/command"]
+from config import SHELLY_HT_TOPIC, TEMPCONTROL_TOPIC, SHELLY_RELAY_TOPICS
 
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, flags, rc):
