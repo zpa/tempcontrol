@@ -13,7 +13,9 @@ app = Flask(__name__)
 @app.route('/')
 @app.route('/index/')
 def index():
-    return "<html>tempcontrol</html>"
+    MAJOR = 0
+    MINOR = 1
+    return f'<html>tempcontrol v{MAJOR}.{MINOR}</html>'
 
 @app.route('/measurement/')
 def measurement():
@@ -38,11 +40,11 @@ class Message(Enum):
     TURN_OFF = 4
 
 def parse_message(message_body):
-    if message_body[0:4] == 'INFO':
+    if message_body[0:4].upper() == 'INFO':
         return (Message.INFO, None)
-    elif message_body[0:8] == 'TURN OFF':
+    elif message_body[0:8].upper() == 'TURN OFF':
         return (Message.TURN_OFF, None)
-    elif message_body[0:4] == 'HEAT':
+    elif message_body[0:4].upper() == 'HEAT':
         try:
             temp = int(message_body[4:])
             return (Message.HEAT, temp)
@@ -136,8 +138,8 @@ def message():
     error = 'OK'
     
     if msg == Message.UNKNOWN:
-        send_message(ADMIN, f'Failed to parse message received from {sender}')
-        send_message(ADMIN, message_body)
+        send_message(ADMIN, f'Failed to parse message received from {sender}', serial = 1)
+        send_message(ADMIN, message_body, serial = 2)
         s = get_status_info(conn)
     elif msg == Message.INFO:
         s = get_status_info(conn)
@@ -150,5 +152,3 @@ def message():
     conn.close()
 
     return f'<html>{s}, {error}</html>'
-
-

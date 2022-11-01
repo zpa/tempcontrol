@@ -53,7 +53,7 @@ def on_message(client, userdata, msg):
             temp_measured = float(msg.payload)
             temp = sm.Temp.get(temp_measured, temp_target)
             (new_state, message) = sm.transition(sm.Event.TEMP, current_state, temp)
-            logging.debug(f'state transition: {(event, current_state, temp)} => {(new_state, message)}')
+            logging.debug(f'state transition: {(sm.Event.TEMP, current_state, temp)} => {(new_state, message)}')
             publish_message(client, message)
         except ValueError:
             logging.error(f'could not interpret {msg.payload} in msg.payload as a float')
@@ -78,15 +78,20 @@ def on_message(client, userdata, msg):
     else:
         pass
 
-logging.basicConfig(level=logging.DEBUG)
-logging.info("tempcontrol mqtt client started")
+def main():
+    logging.basicConfig(level=logging.DEBUG)
+    logging.info("tempcontrol mqtt client started")
 
-client = mqtt.Client()
-client.on_connect = on_connect
-client.on_message = on_message
+    client = mqtt.Client()
+    client.on_connect = on_connect
+    client.on_message = on_message
 
-client.connect("localhost", 1883, 60)
+    client.connect("localhost", 1883, 60)
 
-# Blocking call that processes network traffic, dispatches callbacks and
-# handles reconnecting.
-client.loop_forever()
+    # Blocking call that processes network traffic, dispatches callbacks and
+    # handles reconnecting.
+    client.loop_forever()
+    
+if __name__ == '__main__':
+    main()
+

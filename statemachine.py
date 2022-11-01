@@ -16,14 +16,18 @@ class Temp(Enum):
             return None
         
         temp = Temp.T0
-        if measured < target - delta_minus:
-            pass
-        elif measured > target + delta_plus:
-            temp = Temp.T2
-        else:
-            temp = Temp.T1
+        try:
+            if measured < target - delta_minus:
+                pass
+            elif measured > target + delta_plus:
+                temp = Temp.T2
+            else:
+                temp = Temp.T1
             
-        return temp
+            return temp
+        
+        except TypeError:
+            raise ValueError(f'Temp.get() could not determine region, parameters: (measured = {measured}, target = {target}, delta_minus = {delta_minus}, delta_plus = {delta_plus})')
 
 # system state
 class State(Enum):
