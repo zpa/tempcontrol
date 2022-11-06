@@ -72,7 +72,7 @@ def on_message(client, userdata, msg):
     else:
         pass
 
-def main():
+def main_mqtt_loop():
     logging.basicConfig(level=logging.DEBUG)
     logging.info("tempcontrol mqtt client started")
 
@@ -86,6 +86,3 @@ def main():
     # handles reconnecting.
     client.loop_forever()
     
-if __name__ == '__main__':
-    main()
-
