@@ -6,12 +6,12 @@
 # the client publishes messages on the topics directing the Shelly1 relays
 
 from enum import Enum
-import database as db
-import statemachine as sm
+from .database import *
+from .statemachine import Event, Temp, transition
 import paho.mqtt.client as mqtt
 import logging
 import sqlite3
-from config import SHELLY_HT_TOPIC, TEMPCONTROL_TOPIC, SHELLY_RELAY_TOPICS
+from .config import SHELLY_HT_TOPIC, TEMPCONTROL_TOPIC, SHELLY_RELAY_TOPICS
 
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, flags, rc):
@@ -35,9 +35,9 @@ def publish_message(client, msg):
 def on_message(client, userdata, msg):
     logging.debug(f'mqtt message received on topic {msg.topic}, payload: {msg.payload}')
 
-    conn = db.get_connection()
-    (current_state, param) = db.get_current_state(conn)
-    most_recent_temp = db.get_most_recent_temp(conn)
+    conn = get_connection()
+    (current_state, param) = load_current_state(conn)
+    most_recent_temp = load_most_recent_temp(conn)
     conn.close()
 
     temp_target = param
@@ -45,9 +45,9 @@ def on_message(client, userdata, msg):
     if msg.topic == SHELLY_HT_TOPIC:
         try:
             temp_measured = float(msg.payload)
-            temp = sm.Temp.get(temp_measured, temp_target)
-            (new_state, message) = sm.transition(sm.Event.TEMP, current_state, temp)
-            logging.debug(f'state transition: {(sm.Event.TEMP, current_state, temp)} => {(new_state, message)}')
+            temp = Temp.get(temp_measured, temp_target)
+            (new_state, message) = transition(Event.TEMP, current_state, temp)
+            logging.debug(f'state transition: {(Event.TEMP, current_state, temp)} => {(new_state, message)}')
             publish_message(client, message)
         except ValueError:
             logging.error(f'could not interpret {msg.payload} in msg.payload as a float')
@@ -57,12 +57,12 @@ def on_message(client, userdata, msg):
     elif msg.topic == TEMPCONTROL_TOPIC:
         temp_measured = most_recent_temp
         try:
-            (event, temp_from_message) = sm.Event.parse_message(msg.payload.decode('utf-8'))
+            (event, temp_from_message) = Event.parse_message(msg.payload.decode('utf-8'))
             if temp_from_message != None:
                 temp_target = temp_from_message
 
-            temp = sm.Temp.get(temp_measured, temp_target)
-            (new_state, message) = sm.transition(event, current_state, temp)
+            temp = Temp.get(temp_measured, temp_target)
+            (new_state, message) = transition(event, current_state, temp)
             logging.debug(f'state transition: {(event, current_state, temp)} => {(new_state, message)}')
             publish_message(client, message)                
         except ValueError:

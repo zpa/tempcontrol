@@ -1,5 +1,5 @@
 from enum import Enum
-from config import TEMP_DELTA_MINUS, TEMP_DELTA_PLUS
+from .config import TEMP_DELTA_MINUS, TEMP_DELTA_PLUS
 
 # temperature regions for implementing hysteresis
 # <----T0----+----T1----+----T2---->
@@ -60,7 +60,7 @@ class Event(Enum):
         else:
             raise ValueError(f'no Event corresponds to {state}')
     
-    def str(self, temp = None):
+    def str_with(self, temp = None):
         text = self.name.lower()
         if temp != None:
             text += f' {temp}'

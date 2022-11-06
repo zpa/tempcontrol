@@ -1,5 +1,5 @@
 import pytest
-from statemachine import Event, State
+from tempcontrol.statemachine import Event, State
 
 def test_parse():
     assert Event.parse_message('off') == (Event.OFF, None)
@@ -32,8 +32,8 @@ def test_create_from():
     with pytest.raises(ValueError):
         Event.create_from(-999)
 
-def test_str():
-    assert Event.OFF.str() == 'off'
-    assert Event.ON.str() == 'on'
-    assert Event.ON.str(1) == 'on 1'
+def test_str_with():
+    assert Event.OFF.str_with() == 'off'
+    assert Event.ON.str_with() == 'on'
+    assert Event.ON.str_with(1) == 'on 1'
     

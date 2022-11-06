@@ -1,5 +1,5 @@
 from datetime import datetime
-from config import SMS_OUTBOX
+from .config import SMS_OUTBOX
 
 # gammu file backend filename template:
 # OUT<priority><date>_<time>_<serial>_<recipient>_<note>.<ext>

@@ -1,4 +1,4 @@
-from statemachine import Temp
+from tempcontrol.statemachine import Temp
 
 def test_T0():
     assert Temp.get(measured = 10, target = 12, delta_minus = 1) == Temp.T0
