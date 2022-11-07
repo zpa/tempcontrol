@@ -1,6 +1,5 @@
 import pytest
 import mock
-import importlib
 import tempcontrol.tempcontrol_mqtt_client as test_client
 from tempcontrol.statemachine import State, ControlMessage
 
