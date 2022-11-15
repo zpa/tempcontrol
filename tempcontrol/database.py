@@ -46,3 +46,30 @@ def save_measurement(conn, timestamp, temperature, humidity):
     cur = conn.cursor()
     cur.execute(QUERY, (timestamp, temperature, humidity))
     conn.commit()
+
+def load_last_healthcheck(conn):
+    QUERY = '''
+    SELECT timestamp,result FROM Healthcheck ORDER BY timestamp DESC LIMIT 1;
+    '''
+    cur = conn.cursor()
+    results = cur.execute(QUERY)
+    rows = results.fetchall()
+    timestamp = rows[0]['timestamp']
+    result = rows[0]['result']
+    return (timestamp, result)
+
+def save_healthcheck(conn, timestamp, result):
+    QUERY = '''
+    INSERT INTO Healthcheck(timestamp, result) VALUES(?,?)
+    '''
+    cur = conn.cursor()
+    cur.execute(QUERY, (timestamp, result))
+    conn.commit()
+
+def load_max_temp_since(conn, timestamp):
+    cur = conn.cursor()
+    results = cur.execute(f'SELECT MAX(temperature) FROM Measurement WHERE timestamp > "{timestamp}"')
+    rows = results.fetchall()
+    temp = rows[0]['MAX(temperature)']
+    return temp
+

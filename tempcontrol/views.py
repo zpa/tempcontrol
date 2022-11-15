@@ -14,17 +14,17 @@ from tempcontrol import app
 from .database import *
 from .statemachine import State, Event
 from .sms import send_sms
-from .config import ADMIN
+from .config import ADMIN, HEALTHCHECK_DELAY, TIMESTAMP_FORMAT
 
 @app.route('/')
 @app.route('/index/')
 def index():
     MAJOR = 1
-    MINOR = 0
-    RELEASE_DATE = '2022-11-06'
+    MINOR = 1
+    RELEASE_DATE = '2022-11-14'
 
     conn = get_connection()
-    starttime = (datetime.now() - timedelta(days = 30)).strftime('%Y-%m-%d %H:%M:%S')
+    starttime = (datetime.now() - timedelta(days = 30)).strftime(TIMESTAMP_FORMAT)
     df = load_temp_after(conn, starttime)
     conn.close()
 
@@ -74,7 +74,7 @@ def index():
 def measurement():
     hum = request.args.get('hum', type = int)
     temp = request.args.get('temp', type = float)
-    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    timestamp = datetime.now().strftime(TIMESTAMP_FORMAT)
     
     conn = get_connection()
     save_measurement(conn, timestamp, temp, hum)
@@ -106,14 +106,14 @@ def parse_message(message_body):
     return (Message.UNKNOWN, None)
 
 def set_current_state(conn, timestamp, state, param, requester):
-    response = 'OK'
+    response = 'status set OK'
     try:
         payload = Event.create_from(state).str_with(param)
         mqtt_publish.single("tempcontrol/command", payload = payload, qos = 2, retain = True, hostname = "localhost", port = 1883, keepalive = 60)
     except ValueError as err:
-        response = f'Error: {err}'
+        response = f'error: {err}'
     except:
-        response = 'Error: failed to publish mqtt message'
+        response = 'error: failed to publish mqtt msg'
 
     save_current_state(conn, timestamp, state, param, requester)
     return response
@@ -128,24 +128,40 @@ def get_new_state(current_state, message):
     else:
         return current_state
 
+# status message format:
+# System OFF, current XXC, target NA, HC at <timestamp>: {OK | NO TEMP SINCE <timestamp> | MAX TEMP XXC SINCE <timestamp>}
+# Heating ON, current XXC, target XXC, HC at <timestamp>: {OK | NO TEMP SINCE <timestamp> | MAX TEMP XXC SINCE <timestamp>}
 def get_status_info(conn):
     (state, param) = load_current_state(conn)
     response = ''
+
+    # system state
     if state == State.OFF:
         response += 'System OFF'
     else:
         response += 'Heating ON'
 
+    # current temp
     temp = load_most_recent_temp(conn)
-    response += f', current temp {temp}C'
+    response += f', current {temp}C'
+
+    # target temp
+    if param == None:
+        param = 'N/A'
+        
+    response += f', target {param}'
 
     if state == State.ON:
-        response += f', target temp {param}C'
-        
+        response += 'C'
+
+    # healthcheck status
+    (timestamp, result) = load_last_healthcheck(conn)
+    response += f', HC({timestamp}): {result}'
+    
     return response
 
 def process_state_change(conn, msg, param, requester):
-    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    timestamp = datetime.now().strftime(TIMESTAMP_FORMAT)
     (current_state, current_param) = load_current_state(conn)
     new_state = get_new_state(current_state, msg)
     error = set_current_state(conn, timestamp, new_state, param, requester)
@@ -169,11 +185,11 @@ def info():
 @app.route('/heat/<temperature>')
 def heat(temperature):
     conn = get_connection()
-    error = 'OK'
+    error = ''
     try:
         error = process_state_change(conn, Message.HEAT, int(temperature), f'{request.user_agent} at {request.remote_addr}')
     except ValueError:
-        error = "Error: failed to parse temperature as integer"        
+        error = "error: failed to parse temp as int"        
 
     s = get_status_info(conn)
     conn.close()
@@ -186,7 +202,7 @@ def message():
     
     (msg, param) = parse_message(message_body)
     conn = get_connection()
-    error = 'OK'
+    error = 'msg processed OK'
     
     if msg == Message.UNKNOWN:
         send_message(ADMIN, f'Failed to parse message received from {sender}', serial = 1)
@@ -194,7 +210,7 @@ def message():
         s = get_status_info(conn)
     elif msg == Message.INFO:
         s = get_status_info(conn)
-        send_message(sender, s + ', ' + error)
+        (timestamp_last_str, result_last) = load_last_healthcheck(conn)
     else:
         error = process_state_change(conn, msg, param, sender)
         s = get_status_info(conn)
@@ -203,3 +219,28 @@ def message():
     conn.close()
 
     return f'<html>{s}, {error}</html>'
+
+@app.route('/healthcheck/')
+def healthcheck():
+    conn = get_connection()
+    (current_state, current_param) = load_current_state(conn)
+    (timestamp_last_str, result_last) = load_last_healthcheck(conn)
+    timestamp_last = datetime.strptime(timestamp_last_str, TIMESTAMP_FORMAT)
+    timestamp_now = datetime.now()
+    if timestamp_now > timestamp_last + HEALTHCHECK_DELAY:
+        timestamp = timestamp_now.strftime(TIMESTAMP_FORMAT)
+        result = 'OK'
+        # perform healthchecks
+        max_temp = load_max_temp_since(conn, timestamp_last_str)
+        if max_temp == None:
+            result = f'NO TEMP SINCE {timestamp_last_str}'
+            send_message(ADMIN, result)
+        elif current_state == State.ON and max_temp < current_param:
+            result = f'MAX TEMP {max_temp}C SINCE {timestamp_last_str}'
+            send_message(ADMIN, result)
+        save_healthcheck(conn, timestamp, result)
+    else:
+        timestamp = timestamp_last_str
+        result = result_last
+        
+    return f'<html>healthcheck ran @{timestamp}, result: {result}</html>'

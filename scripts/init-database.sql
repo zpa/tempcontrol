@@ -13,5 +13,12 @@ CREATE TABLE State (
        requester TEXT NOT NULL
        );
 
+CREATE TABLE Healthcheck (
+       id INTEGER PRIMARY KEY,
+       timestamp TEXT NOT NULL,
+       result TEXT NOT NULL
+       );
+
 INSERT INTO State(timestamp,stateId,requester) VALUES('2022-01-01 00:00:00',1,'creator');
+INSERT INTO Healthcheck(timestamp,result) VALUES('2022-01-01 00:00:00','OK');
 

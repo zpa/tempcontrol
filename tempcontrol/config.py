@@ -1,4 +1,5 @@
 # tempcontrol config file
+from datetime import timedelta
 
 # temperature sensitivity control parameters of hysteresis
 TEMP_DELTA_MINUS = 0.5
@@ -21,4 +22,7 @@ SHELLY_RELAY_TOPICS = ["shellies/shelly1-livingroom/relay/0/command",
 # cell phone number of system admin
 ADMIN = '+36203732951'
 
+# minimum time between healthchecks
+HEALTHCHECK_DELAY = timedelta(hours = 6)
+TIMESTAMP_FORMAT = '%Y-%m-%d %H:%M:%S'
 
