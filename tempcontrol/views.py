@@ -20,8 +20,8 @@ from .config import ADMIN, HEALTHCHECK_DELAY, TIMESTAMP_FORMAT
 @app.route('/index/')
 def index():
     MAJOR = 1
-    MINOR = 1
-    RELEASE_DATE = '2022-11-14'
+    MINOR = 2
+    RELEASE_DATE = '2022-11-28'
 
     conn = get_connection()
     starttime = (datetime.now() - timedelta(days = 30)).strftime(TIMESTAMP_FORMAT)
@@ -81,10 +81,10 @@ def measurement():
     conn.close()
     return f'<html>@{timestamp}: {temp},{hum}</html>'
 
-def send_message(receiver, message_body):
+def send_message(receiver, message_body, serial = 1):
     print(f'Message to: {receiver}')
     print(f'Message: {message_body}')
-    send_sms(receiver, message_body)
+    send_sms(receiver, message_body, serial)
 
 class Message(Enum):
     UNKNOWN = 1
