@@ -9,10 +9,17 @@ state_transition_table = {
     (State.ON, Message.INFO): State.ON,
     (State.ON, Message.HEAT): State.ON,
     (State.ON, Message.TURN_OFF): State.OFF,
+    (State.ON, Message.MANUAL_MODE): State.MANUAL,
     (State.OFF, Message.UNKNOWN): State.OFF,
     (State.OFF, Message.INFO): State.OFF,
     (State.OFF, Message.HEAT): State.ON,
-    (State.OFF, Message.TURN_OFF): State.OFF
+    (State.OFF, Message.TURN_OFF): State.OFF,
+    (State.OFF, Message.MANUAL_MODE): State.MANUAL,
+    (State.MANUAL, Message.UNKNOWN): State.MANUAL,
+    (State.MANUAL, Message.INFO): State.MANUAL,
+    (State.MANUAL, Message.HEAT): State.ON,
+    (State.MANUAL, Message.TURN_OFF): State.OFF,
+    (State.MANUAL, Message.MANUAL_MODE): State.MANUAL
 }
     
 def test_get_new_state():

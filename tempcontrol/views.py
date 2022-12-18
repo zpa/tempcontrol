@@ -91,6 +91,7 @@ class Message(Enum):
     INFO = 2
     HEAT = 3
     TURN_OFF = 4
+    MANUAL_MODE = 5
 
 def parse_message(message_body):
     if message_body[0:4].upper() == 'INFO':
@@ -103,6 +104,8 @@ def parse_message(message_body):
             return (Message.HEAT, temp)
         except ValueError:
             return (Message.UNKNOWN, None)
+    elif message_body[0:11].upper() == 'MANUAL MODE':
+        return (Message.MANUAL_MODE, None)
     return (Message.UNKNOWN, None)
 
 def set_current_state(conn, timestamp, state, param, requester):
@@ -125,12 +128,15 @@ def get_new_state(current_state, message):
         return State.ON
     elif message == Message.TURN_OFF:
         return State.OFF
+    elif message == Message.MANUAL_MODE:
+        return State.MANUAL
     else:
         return current_state
 
 # status message format:
 # System OFF, current XXC, target NA, HC at <timestamp>: {OK | NO TEMP SINCE <timestamp> | MAX TEMP XXC SINCE <timestamp>}
 # Heating ON, current XXC, target XXC, HC at <timestamp>: {OK | NO TEMP SINCE <timestamp> | MAX TEMP XXC SINCE <timestamp>}
+# Manual mode, current XXC, target NA, HC at <timestamp>: {OK | NO TEMP SINCE <timestamp> | MAX TEMP XXC SINCE <timestamp>}
 def get_status_info(conn):
     (state, param) = load_current_state(conn)
     response = ''
@@ -138,8 +144,10 @@ def get_status_info(conn):
     # system state
     if state == State.OFF:
         response += 'System OFF'
-    else:
+    elif state == State.ON:
         response += 'Heating ON'
+    else:
+        response += 'MANUAL mode'
 
     # current temp
     temp = load_most_recent_temp(conn)
@@ -166,7 +174,15 @@ def process_state_change(conn, msg, param, requester):
     new_state = get_new_state(current_state, msg)
     error = set_current_state(conn, timestamp, new_state, param, requester)
     return error
-    
+
+@app.route('/manualmode/')
+def manualmode():
+    conn = get_connection()
+    error = process_state_change(conn, Message.MANUAL_MODE, None, f'{request.user_agent} at {request.remote_addr}')
+    s = get_status_info(conn)
+    conn.close()
+    return f'<html>{s}, {error}</html>'
+
 @app.route('/turnoff/')
 def turnoff():
     conn = get_connection()
