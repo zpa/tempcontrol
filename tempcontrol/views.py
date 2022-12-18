@@ -21,7 +21,7 @@ from .config import ADMIN, HEALTHCHECK_DELAY, TIMESTAMP_FORMAT
 def index():
     MAJOR = 1
     MINOR = 2
-    RELEASE_DATE = '2022-11-28'
+    RELEASE_DATE = '2022-12-18'
 
     conn = get_connection()
     starttime = (datetime.now() - timedelta(days = 30)).strftime(TIMESTAMP_FORMAT)
