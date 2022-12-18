@@ -20,7 +20,7 @@ from .config import ADMIN, HEALTHCHECK_DELAY, TIMESTAMP_FORMAT
 @app.route('/index/')
 def index():
     MAJOR = 1
-    MINOR = 2
+    MINOR = 3
     RELEASE_DATE = '2022-12-18'
 
     conn = get_connection()
