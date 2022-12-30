@@ -218,15 +218,14 @@ def message():
     
     (msg, param) = parse_message(message_body)
     conn = get_connection()
-    error = 'msg processed OK'
     
     if msg == Message.UNKNOWN:
         send_message(ADMIN, f'Failed to parse message received from {sender}', serial = 1)
         send_message(ADMIN, message_body, serial = 2)
-        s = get_status_info(conn)
     elif msg == Message.INFO:
+        error = 'msg processed OK'
         s = get_status_info(conn)
-        (timestamp_last_str, result_last) = load_last_healthcheck(conn)
+        send_message(sender, s + ', ' + error)
     else:
         error = process_state_change(conn, msg, param, sender)
         s = get_status_info(conn)
