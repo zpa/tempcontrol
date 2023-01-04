@@ -98,7 +98,7 @@ state_transition_table = {
     (Event.ON, State.MANUAL, Temp.T0): (State.ON, ControlMessage.ON),  # temp from control message
     (Event.ON, State.MANUAL, Temp.T1): (State.ON, ControlMessage.ON),  # temp from control message
     (Event.ON, State.MANUAL, Temp.T2): (State.ON, ControlMessage.OFF), # temp from control message
-    (Event.ON, State.MANUAL, None): (State.ON, ControlMessage.ON),
+    (Event.ON, State.MANUAL, None): (State.MANUAL, ControlMessage.ON),
 
     (Event.TEMP, State.ON, Temp.T0): (State.ON, ControlMessage.ON),
     (Event.TEMP, State.ON, Temp.T1): (State.ON, None),
