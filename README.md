@@ -30,30 +30,29 @@ anything requires some kind of a connection between you and the thing
 you are controlling remotely. Here are the reasonable options I could
 think of at the time:
 
-    1. Fixed internet connection: there is only one provider
-    available, and they are known to be expensive and
-    unreliable. (Sounds familiar?) *Not good.*
+1. Fixed internet connection: there is only one provider
+available, and they are known to be expensive and
+unreliable. (Sounds familiar?) *Not good.*
     
-    1. Cellular data connection, of which there are two options:
+1. Cellular data connection, of which there are two options:
     
-        1. Standard cellular data connection: my remote controller would
-        probably have a hard time with dyndns. IP addresses
-        only remain unchanged for the lifetime of the MPLS context in
-        the mobile operator's backbone, of which I have zero
-        control. So this option requires a server that the remote
-        controller can connect to. Sounds a little bit more
-        complicated than what I wanted to build. *Not good.* (Everyone
-        makes bad decisions, don't they?)
+    1. Standard cellular data connection: my remote controller would
+    probably have a hard time with dyndns. IP addresses only remain
+    unchanged for the lifetime of the MPLS context in the mobile
+    operator's backbone, of which I have zero control. So this option
+    requires a server that the remote controller can connect to.
+    Sounds a little bit more complicated than what I wanted to build.
+    *Not good.* (Everyone makes bad decisions, don't they?)
 
-        1. IoT SIM cards: data traffic is very limited. It might have
-        been enough if I had had more experience and I had known
-        exactly what I wanted to do and *how*. Some of these cards are
-        only sold to businesses, others have more recurring costs than
-        I am comfortable with. *Not good.*
+    1. IoT SIM cards: data traffic is very limited. It might have been
+    enough if I had had more experience and I had known exactly what I
+    wanted to do and *how*. Some of these cards are only sold to
+    businesses, others have more recurring costs than I am comfortable
+    with. *Not good.*
 
-    1. SMS: simple, reliable, cheap, and even my wife could control
-    the system easily from anywhere without having to remember funky
-    domain names and struggling with my poor web interface design. *Might work.*
+1. SMS: simple, reliable, cheap, and even my wife could control the
+system easily from anywhere without having to remember funky domain
+names and struggling with my poor web interface design. *Might work.*
 
 So I concluded that I wanted to use the good old SMS service to
 control four relays remotely. I silently stepped up one grade on the
@@ -224,38 +223,38 @@ any unix command when a new message arrives. That should do the job.
 After all these considerations, here are the logical components in the
 architecture that I ended up needing to set up or implement:
 
-    1. HTTP service, whose main reponsibilities are the following:
+1. HTTP service, whose main reponsibilities are the following:
 
-        1. Local user interface for control and diagnostics
-        1. Temperature measurement registry
-        1. SMS command interface
+    1. Local user interface for control and diagnostics
+    1. Temperature measurement registry
+    1. SMS command interface
 
-    1. Database backend to store the following:
+1. Database backend to store the following:
 
-        1. Temperature measurements
-        1. System state changes
+    1. Temperature measurements
+    1. System state changes
 
-    1. MQTT server
+1. MQTT server
 
-    1. MQTT client to send control messages to relays
+1. MQTT client to send control messages to relays
 
-    1. NTP server to provide a reference time for Shelly H&T
+1. NTP server to provide a reference time for Shelly H&T
 
-    1. Some script to sync system time with GSM time
+1. Some script to sync system time with GSM time
 
-    1. SMS polling and sending service
+1. SMS polling and sending service
 
 ### Messaging
 
 The following interfaces are needed between the components in the system:
 
-    1. HTTP REST API
+1. HTTP REST API
 
-    1. Database schema - not a real interface, but...
+1. Database schema - not a real interface, but...
 
-    1. MQTT messaging protocol between HTTP service and MQTT client
+1. MQTT messaging protocol between HTTP service and MQTT client
 
-    1. SMS protocol
+1. SMS protocol
 
 ### Design for robustness
 
@@ -264,23 +263,23 @@ The following interfaces are needed between the components in the system:
 First, let me enumerate all the things that I could imagine to fail at
 some point.
 
-    1. The power grid. Well, that is a single point of failure. If there is no power there is no heating, so nothing to control anyway.
+1. The power grid. Well, that is a single point of failure. If there is no power there is no heating, so nothing to control anyway.
 
-        1. What if the power comes back? The system should be set up so as to boot into operational state without manual assistance.
+    1. What if the power comes back? The system should be set up so as to boot into operational state without manual assistance.
         
-        1. What if the system fails to boot properly after a power outage? It would be important to at least retain the ability to run the system manually without having to uninstall the relays. Also, it would be great if the default state of the relays allowed the radiators to heat without any manual intervention.
+    1. What if the system fails to boot properly after a power outage? It would be important to at least retain the ability to run the system manually without having to uninstall the relays. Also, it would be great if the default state of the relays allowed the radiators to heat without any manual intervention.
 
-        1. What if a partial power outage only affects one or more of the radiators (and the respective relays)? They should get some control message every now and then to make sure they operate as expected.
+    1. What if a partial power outage only affects one or more of the radiators (and the respective relays)? They should get some control message every now and then to make sure they operate as expected.
 
-    1. The RPi. Yet another single point of failure. The RPi could freeze or it could do unexpected things. Unfortunately, there is not much we can do about it given the capabilities of the other components. But it would be useful if one could get the system to work without the controls in a simple way manually.
+1. The RPi. Yet another single point of failure. The RPi could freeze or it could do unexpected things. Unfortunately, there is not much we can do about it given the capabilities of the other components. But it would be useful if one could get the system to work without the controls in a simple way manually.
 
-    1. The relays. Relays can probably fail in multiple ways, but given that they are wired into the circuit without redundancy, there is not much that we can do to address that.
+1. The relays. Relays can probably fail in multiple ways, but given that they are wired into the circuit without redundancy, there is not much that we can do to address that.
 
-    1. The thermometer. It's easy to notice if measurements have been missing for some time, but there is no way we could validate them and recognize a reasonable but false reading without some external reference. There should be some independent control to prevent overheating though.
+1. The thermometer. It's easy to notice if measurements have been missing for some time, but there is no way we could validate them and recognize a reasonable but false reading without some external reference. There should be some independent control to prevent overheating though.
 
-    1. The radiators. It's also easy to notice if you are asking for some temperature but the system is unable to reach it.
+1. The radiators. It's also easy to notice if you are asking for some temperature but the system is unable to reach it.
 
-    1. The user. The weakest point sometimes. What I want to avoid here is really to remain without the ability to control heating when I am physically present without my cell phone or any WiFi-enabled computer.
+1. The user. The weakest point sometimes. What I want to avoid here is really to remain without the ability to control heating when I am physically present without my cell phone or any WiFi-enabled computer.
 
 #### What can I do about it?
 
@@ -291,15 +290,15 @@ manually, if needed.
 In the absence of redundancy, I decided to take the following steps to
 improve robustness and safety.
 
-    1. I set the default state after power-on in the Shelly relays to 'on'.
+1. I set the default state after power-on in the Shelly relays to 'on'.
 
-    1. When I send MQTT messages I mark them as 'last known good'/retained messages for the topic.
+1. When I send MQTT messages I mark them as 'last known good'/retained messages for the topic.
 
-    1. I set the built-in thermostat of the radiators to 24C. This setting persists even after a power outage. (Lucky me. In case you are interested, fiddling with the control electronics of the radiators is beyond my capabilities. They don't have any external interface except for the power plug and a few manual buttons.)
+1. I set the built-in thermostat of the radiators to 24C. This setting persists even after a power outage. (Lucky me. In case you are interested, fiddling with the control electronics of the radiators is beyond my capabilities. They don't have any external interface except for the power plug and a few manual buttons.)
 
-    1. I added a periodic health check to the system that verifies if there are recent thermometer readings and if the temperature has stayed below the target for too long. It sends me a message if the systems fails the check.
+1. I added a periodic health check to the system that verifies if there are recent thermometer readings and if the temperature has stayed below the target for too long. It sends me a message if the systems fails the check.
 
-    1. I added a manual mode to the system, where the RPi instructs the relays to switch on, and so the built-in thermometers of the radiators will control the heating just like in the good old times.
+1. I added a manual mode to the system, where the RPi instructs the relays to switch on, and so the built-in thermometers of the radiators will control the heating just like in the good old times.
 
 If there is power and the control system is unusable because of a failed RPi or thermometer, but the relays are still working, one can power off the RPi and the radiators in the fuse box, unplug the RPi, and then restore the power and have the system running as if there was no remote control.
 
@@ -334,13 +333,13 @@ This section is intended for record keeping rather than explanation.
 I realize that some of what follows sounds obvious, but I still wanted
 to collect these thoughts.
 
-    1. DIY-frindly off-the-cloud IoT products exist.
+1. DIY-frindly off-the-cloud IoT products exist.
 
-    1. Check all the fine print, even after you find the first gotcha.
+1. Check all the fine print, even after you find the first gotcha.
 
-    1. MQTT sounds like an intimidating acronym, but it is actually a very
-    reasonable protocol. In fact, I can hardly imagine doing the job in a
-    simpler way.
+1. MQTT sounds like an intimidating acronym, but it is actually a very
+reasonable protocol. In fact, I can hardly imagine doing the job in a
+simpler way.
 
 When working on this side project I had a lot of fun in the best sense
 of the word. It proved to be challenging and lasted for long enough so
