@@ -13,6 +13,13 @@ CREATE TABLE State (
        requester TEXT NOT NULL
        );
 
+CREATE TABLE BoilerState (
+       id INTEGER PRIMARY KEY,
+       timestamp TEXT NOT NULL,
+       stateId INT NOT NULL,
+       requester TEXT NOT NULL
+       );
+
 CREATE TABLE Healthcheck (
        id INTEGER PRIMARY KEY,
        timestamp TEXT NOT NULL,
@@ -20,5 +27,5 @@ CREATE TABLE Healthcheck (
        );
 
 INSERT INTO State(timestamp,stateId,requester) VALUES('2022-01-01 00:00:00',1,'creator');
+INSERT INTO BoilerState(timestamp,stateId,requester) VALUES('2022-01-01 00:00:00',1,'creator');
 INSERT INTO Healthcheck(timestamp,result) VALUES('2022-01-01 00:00:00','OK');
-

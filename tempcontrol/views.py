@@ -12,16 +12,16 @@ import matplotlib.dates as mdates
 from tempcontrol import app
 
 from .database import *
-from .statemachine import State, Event
+from .statemachine import State, Event, BoilerState, BoilerEvent
 from .sms import send_sms
-from .config import ADMIN, HEALTHCHECK_DELAY, TIMESTAMP_FORMAT
+from .config import ADMIN, HEALTHCHECK_DELAY, TIMESTAMP_FORMAT, TEMPCONTROL_TOPIC, BOILERCONTROL_TOPIC
 
 @app.route('/')
 @app.route('/index/')
 def index():
-    MAJOR = 1
-    MINOR = 3
-    RELEASE_DATE = '2022-12-18'
+    MAJOR = 2
+    MINOR = 0
+    RELEASE_DATE = '2023-03-27'
 
     conn = get_connection()
     starttime = (datetime.now() - timedelta(days = 30)).strftime(TIMESTAMP_FORMAT)
@@ -68,7 +68,7 @@ def index():
     fig.savefig(buf, format="png")
     # embed the result in the html output
     data = base64.b64encode(buf.getbuffer()).decode("ascii")
-    return f'<html><p>tempcontrol v{MAJOR}.{MINOR} created @{RELEASE_DATE}</p><p><img src="data:image/png;base64,{data}"/></p></html>'
+    return f'<html><p>tempcontrol v{MAJOR}.{MINOR} released on {RELEASE_DATE} by zpa</p><p><img src="data:image/png;base64,{data}"/></p></html>'
 
 @app.route('/measurement/')
 def measurement():
@@ -92,6 +92,10 @@ class Message(Enum):
     HEAT = 3
     TURN_OFF = 4
     MANUAL_MODE = 5
+    BOILER_ON = 6
+    BOILER_OFF = 7
+    def boiler_control(self):
+        return self == Message.BOILER_ON or self == Message.BOILER_OFF
 
 def parse_message(message_body):
     if message_body[0:4].upper() == 'INFO':
@@ -106,19 +110,36 @@ def parse_message(message_body):
             return (Message.UNKNOWN, None)
     elif message_body[0:11].upper() == 'MANUAL MODE':
         return (Message.MANUAL_MODE, None)
+    elif message_body[0:9].upper() == 'BOILER ON':
+        return (Message.BOILER_ON, None)
+    elif message_body[0:10].upper() == 'BOILER OFF':
+        return (Message.BOILER_OFF, None)
     return (Message.UNKNOWN, None)
 
 def set_current_state(conn, timestamp, state, param, requester):
     response = 'status set OK'
     try:
         payload = Event.create_from(state).str_with(param)
-        mqtt_publish.single("tempcontrol/command", payload = payload, qos = 2, retain = True, hostname = "localhost", port = 1883, keepalive = 60)
+        mqtt_publish.single(TEMPCONTROL_TOPIC, payload = payload, qos = 2, retain = True, hostname = "localhost", port = 1883, keepalive = 60)
     except ValueError as err:
         response = f'error: {err}'
     except:
         response = 'error: failed to publish mqtt msg'
 
     save_current_state(conn, timestamp, state, param, requester)
+    return response
+
+def set_current_boiler_state(conn, timestamp, state, requester):
+    response = 'status set OK'
+    try:
+        payload = BoilerEvent.create_from(state).str()
+        mqtt_publish.single(BOILERCONTROL_TOPIC, payload = payload, qos = 2, retain = True, hostname = "localhost", port = 1883, keepalive = 60)
+    except ValueError as err:
+        response = f'error: {err}'
+    except:
+        response = 'error: failed to publish mqtt msg'
+
+    save_current_boiler_state(conn, timestamp, state, requester)
     return response
 
 def get_new_state(current_state, message):
@@ -133,12 +154,21 @@ def get_new_state(current_state, message):
     else:
         return current_state
 
+def get_new_boiler_state(current_state, message):
+    if message == Message.BOILER_ON:
+        return BoilerState.ON
+    elif message == Message.BOILER_OFF:
+        return BoilerState.OFF
+    else:
+        return current_state
+
 # status message format:
-# System OFF, current XXC, target NA, HC at <timestamp>: {OK | NO TEMP SINCE <timestamp> | MAX TEMP XXC SINCE <timestamp>}
-# Heating ON, current XXC, target XXC, HC at <timestamp>: {OK | NO TEMP SINCE <timestamp> | MAX TEMP XXC SINCE <timestamp>}
-# Manual mode, current XXC, target NA, HC at <timestamp>: {OK | NO TEMP SINCE <timestamp> | MAX TEMP XXC SINCE <timestamp>}
+# System OFF, Boiler {OFF | ON}, current XXC, target NA, HC at <timestamp>: {OK | NO TEMP SINCE <timestamp> | MAX TEMP XXC SINCE <timestamp>}
+# Heating ON, Boiler {OFF | ON}, current XXC, target XXC, HC at <timestamp>: {OK | NO TEMP SINCE <timestamp> | MAX TEMP XXC SINCE <timestamp>}
+# Manual mode, Boiler {OFF | ON}, current XXC, target NA, HC at <timestamp>: {OK | NO TEMP SINCE <timestamp> | MAX TEMP XXC SINCE <timestamp>}
 def get_status_info(conn):
     (state, param) = load_current_state(conn)
+    boiler_state = load_current_boiler_state(conn)
     response = ''
 
     # system state
@@ -148,6 +178,13 @@ def get_status_info(conn):
         response += 'Heating ON'
     else:
         response += 'MANUAL mode'
+
+    # boiler state
+    response += ', Boiler '
+    if boiler_state == BoilerState.OFF:
+        response += 'OFF'
+    elif boiler_state == BoilerState.ON:
+        response += 'ON'
 
     # current temp
     temp = load_most_recent_temp(conn)
@@ -170,10 +207,31 @@ def get_status_info(conn):
 
 def process_state_change(conn, msg, param, requester):
     timestamp = datetime.now().strftime(TIMESTAMP_FORMAT)
-    (current_state, current_param) = load_current_state(conn)
-    new_state = get_new_state(current_state, msg)
-    error = set_current_state(conn, timestamp, new_state, param, requester)
+    if msg.boiler_control():
+        current_state = load_current_boiler_state(conn)
+        new_state = get_new_boiler_state(current_state, msg)
+        error = set_current_boiler_state(conn, timestamp, new_state, requester)
+    else:
+        (current_state, current_param) = load_current_state(conn)
+        new_state = get_new_state(current_state, msg)
+        error = set_current_state(conn, timestamp, new_state, param, requester)
     return error
+
+@app.route('/boileroff/')
+def boileroff():
+    conn = get_connection()
+    error = process_state_change(conn, Message.BOILER_OFF, None, f'{request.user_agent} at {request.remote_addr}')
+    s = get_status_info(conn)
+    conn.close()
+    return f'<html>{s}, {error}</html>'
+
+@app.route('/boileron/')
+def boileron():
+    conn = get_connection()
+    error = process_state_change(conn, Message.BOILER_ON, None, f'{request.user_agent} at {request.remote_addr}')
+    s = get_status_info(conn)
+    conn.close()
+    return f'<html>{s}, {error}</html>'
 
 @app.route('/manualmode/')
 def manualmode():

@@ -18,6 +18,10 @@ SHELLY_RELAY_TOPICS = ["shellies/shelly1-livingroom/relay/0/command",
                        "shellies/shelly1-bathroom/relay/0/command",
                        "shellies/shelly1-bedroom1/relay/0/command",
                        "shellies/shelly1-bedroom2/relay/0/command"]
+# tempcontrol MQTT client command channel used for boiler control
+BOILERCONTROL_TOPIC = "boilercontrol/command"
+# boiler relay control channel
+SHELLY_BOILER_RELAY_TOPIC = "shellies/shelly1-boiler/relay/0/command"
 
 # cell phone number of system admin
 ADMIN = '+36203732951'

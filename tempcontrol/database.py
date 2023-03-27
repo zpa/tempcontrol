@@ -39,6 +39,24 @@ def save_current_state(conn, timestamp, state, param, requester):
     cur.execute(QUERY, (timestamp, state.value, param, requester))
     conn.commit()
 
+def load_current_boiler_state(conn):
+    QUERY = '''
+    SELECT stateId from BoilerState ORDER BY timestamp DESC LIMIT 1;
+    '''
+    cur = conn.cursor()
+    results = cur.execute(QUERY)
+    rows = results.fetchall()
+    state = State(rows[0]['stateId'])                
+    return state
+
+def save_current_boiler_state(conn, timestamp, state, requester):
+    QUERY = '''
+    INSERT INTO BoilerState(timestamp,stateId,requester) VALUES (?,?,?)
+    '''    
+    cur = conn.cursor()
+    cur.execute(QUERY, (timestamp, state.value, requester))
+    conn.commit()
+
 def save_measurement(conn, timestamp, temperature, humidity):
     QUERY = '''
     INSERT INTO Measurement(timestamp, temperature, humidity) VALUES(?,?,?);

@@ -1,6 +1,8 @@
 from enum import Enum
 from .config import TEMP_DELTA_MINUS, TEMP_DELTA_PLUS
 
+# temperature control
+
 # temperature regions for implementing hysteresis
 # <----T0----+----T1----+----T2---->
 #            |          |
@@ -72,7 +74,7 @@ class Event(Enum):
             text += f' {temp}'
         return text
     
-# control messages
+# Shelly relay control messages
 class ControlMessage(Enum):
     OFF = 1
     ON = 2
@@ -121,4 +123,54 @@ state_transition_table = {
 
 def transition(event, state, temp):
     (new_state, message) = state_transition_table[(event, state, temp)]
+    return (new_state, message)
+
+# boiler control
+
+# system state
+class BoilerState(Enum):
+    OFF = 1
+    ON = 2
+
+# boiler events
+class BoilerEvent(Enum):
+    OFF = 1
+    ON = 2
+
+    @staticmethod
+    def parse_message(message):
+        if message[0:3].lower() == 'off':
+            return BoilerEvent.OFF
+        elif message[0:2].lower() == 'on':
+            return BoilerEvent.ON
+        else:
+            raise ValueError(f'BoilerEvent.parse_message() could not interpret message {message}')
+
+    @staticmethod
+    def create_from(state):
+        if state == BoilerState.OFF:
+            return BoilerEvent.OFF
+        elif state == BoilerState.ON:
+            return BoilerEvent.ON
+        else:
+            raise ValueError(f'no BoilerEvent corresponds to {state}')
+
+    def str(self):
+        return self.name.lower()
+
+
+# events: on, off
+# states: on, off
+# messages: on, off
+# state transition table header:
+# event state new_state action
+boiler_state_transition_table = {
+    (BoilerEvent.ON, BoilerState.ON): (BoilerState.ON, ControlMessage.ON),
+    (BoilerEvent.ON, BoilerState.OFF): (BoilerState.ON, ControlMessage.ON),
+    (BoilerEvent.OFF, BoilerState.ON): (BoilerState.OFF, ControlMessage.OFF),
+    (BoilerEvent.OFF, BoilerState.OFF): (BoilerState.OFF, ControlMessage.OFF)
+}
+
+def boiler_transition(event, state):
+    (new_state, message) = boiler_state_transition_table[(event, state)]
     return (new_state, message)
