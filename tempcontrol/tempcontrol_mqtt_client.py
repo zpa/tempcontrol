@@ -37,8 +37,7 @@ def publish_message(client, msg):
 def publish_boiler_message(client, msg):
     logging.debug(f'publish_boiler_message called with msg: {msg}')
     if msg != None:
-        for topic in SHELLY_BOILER_RELAY_TOPIC:
-            client.publish(topic, payload=msg.str, qos=2, retain=True)
+        client.publish(SHELLY_BOILER_RELAY_TOPIC, payload=msg.str, qos=2, retain=True)
 
 def load_temp_info():
     conn = get_connection()

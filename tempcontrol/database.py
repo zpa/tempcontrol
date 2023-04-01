@@ -1,5 +1,5 @@
 import sqlite3
-from .statemachine import State
+from .statemachine import State, BoilerState
 import pandas as pd
 
 def get_connection():
@@ -46,7 +46,7 @@ def load_current_boiler_state(conn):
     cur = conn.cursor()
     results = cur.execute(QUERY)
     rows = results.fetchall()
-    state = State(rows[0]['stateId'])                
+    state = BoilerState(rows[0]['stateId'])                
     return state
 
 def save_current_boiler_state(conn, timestamp, state, requester):
